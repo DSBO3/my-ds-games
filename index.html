@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nintendo DS Launcher</title>
+    <!-- Loads the p5.js library safely from a secure content delivery network -->
+    <script src="cloudflare.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        canvas {
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.5);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<script>
+// Nintendo DS Simulator Launcher
+let currentScreen = "menu"; 
+let games = ["Tic-Tac-Toe", "Clicker", "Paint DS", "Catch Drop"];
+let activeGame = "";
+let score = 0;
+
+let tttBoard = ["", "", "", "", "", "", "", "", ""];
+let tttTurn = "X";
+let paintColor = "#ff0000";
+let itemX, itemY, basketX;
+
+function setup() {
+  createCanvas(400, 640);
+  resetCatchGame();
+}
+
+function draw() {
+  background(40);
+  fill(10);
+  rect(10, 10, 380, 280, 5);
+  drawTopScreen();
+
+  fill(20);
+  rect(0, 300, 400, 40);
+  fill(80);
+  ellipse(200, 320, 15, 15); 
+
+  fill(10);
+  rect(10, 350, 380, 280, 5);
+  drawBottomScreen();
+}
+
+function drawTopScreen() {
+  push();
+  translate(10, 10);
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textFont("Courier New");
+
+  if (currentScreen === "menu") {
+    textSize(24);
+    text("NINTENDO DS", 190, 80);
+    textSize(14);
+    text("Select a game below", 190, 140);
+    text("using your 'Stylus' (Mouse)", 190, 170);
+  } else {
+    textSize(20);
+    text("PLAYING: " + activeGame, 190, 50);
+    
+    if (activeGame === "Clicker") {
+      textSize(32);
+      text("Score: " + score, 190, 140);
+    } else if (activeGame === "Tic-Tac-Toe") {
+      textSize(18);
+      text("Turn: " + tttTurn, 190, 140);
+    } else if (activeGame === "Paint DS") {
+      textSize(14);
+      text("Draw below!", 190, 120);
+      text("Selected color is active.", 190, 150);
+    } else if (activeGame === "Catch Drop") {
+      textSize(32);
+      text("Caught: " + score, 190, 140);
+    }
+  }
+  pop();
+}
+
+function drawBottomScreen() {
+  push();
+  translate(10, 350);
+  fill(240);
+  rect(5, 5, 370, 270);
+
+  if (currentScreen === "menu") {
+    for (let i = 0; i < games.length; i++) {
+      let x = (i % 2) * 180 + 15;
+      let y = Math.floor(i / 2) * 100 + 40;
+      fill(200);
+      stroke(100);
+      rect(x, y, 160, 70, 10);
+      fill(0);
+      noStroke();
+      textAlign(CENTER, CENTER);
+      textSize(16);
+      text(games[i], x + 80, y + 35);
+    }
+  } else {
+    fill(255, 100, 100);
+    rect(10, 10, 60, 30, 5);
+    fill(255);
+    textSize(12);
+    textAlign(CENTER, CENTER);
+    text("QUIT", 40, 25);
+
+    if (activeGame === "Clicker") {
+      fill(100, 200, 255);
+      ellipse(190, 140, 100, 100);
+      fill(0);
+      text("TAP!", 190, 140);
+    } 
+    else if (activeGame === "Tic-Tac-Toe") { drawTTT(); } 
+    else if (activeGame === "Paint DS") { drawPaint(); }
+    else if (activeGame === "Catch Drop") { drawCatch(); }
+  }
+  pop();
+}
+
+function mousePressed() {
+  let bx = mouseX - 10;
+  let by = mouseY - 350;
+  if (bx < 5 || bx > 375 || by < 5 || by > 275) return;
+
+  if (currentScreen === "menu") {
+    for (let i = 0; i < games.length; i++) {
+      let x = (i % 2) * 180 + 15;
+      let y = Math.floor(i / 2) * 100 + 40;
+      if (bx > x && bx < x + 160 && by > y && by < y + 70) {
+        activeGame = games[i];
+        currentScreen = "game";
+        score = 0;
+        resetTTT();
+        resetCatchGame();
+      }
+    }
+  } else {
+    if (bx > 10 && bx < 70 && by > 10 && by < 30) {
+      currentScreen = "menu";
+      activeGame = "";
+      return;
+    }
+    if (activeGame === "Clicker") {
+      let d = dist(bx, by, 190, 140);
+      if (d < 50) score++;
+    }
+    else if (activeGame === "Tic-Tac-Toe") { handleTTTClick(bx, by); }
+  }
+}
+
+function drawTTT() {
+  stroke(0);
+  strokeWeight(4);
+  line(150, 60, 150, 240);
+  line(230, 60, 230, 240);
+  line(80, 120, 300, 120);
+  line(80, 180, 300, 180);
+  noStroke();
+  textSize(24);
+  textAlign(CENTER, CENTER);
+  for(let i=0; i<9; i++) {
+    let col = i % 3;
+    let row = Math.floor(i / 3);
+    fill(tttBoard[i] === "X" ? color(200,0,0) : color(0,0,200));
+    text(tttBoard[i], 115 + col*80, 90 + row*60);
+  }
+}
+
+function handleTTTClick(bx, by) {
+  if (bx > 80 && bx < 300 && by > 60 && by < 240) {
+    let col = Math.floor((bx - 80) / 80);
+    let row = Math.floor((by - 60) / 60);
+    let index = row * 3 + col;
+    if (tttBoard[index] === "") {
+      tttBoard[index] = tttTurn;
+      tttTurn = tttTurn === "X" ? "O" : "X";
+    }
+  }
+}
+
+function resetTTT() { tttBoard = ["", "", "", "", "", "", "", "", ""]; tttTurn = "X"; }
+
+function drawPaint() {
+  let colors = ["#ff0000", "#00ff00", "#0000ff", "#000000", "#ffffff"];
+  noStroke();
+  for (let i = 0; i < colors.length; i++) {
+    fill(colors[i]);
+    rect(330, 40 + i * 45, 35, 35);
+    if (colors[i] === paintColor) {
+      stroke(255, 100, 0); noFill(); rect(328, 38 + i * 45, 39, 39); noStroke();
+    }
+  }
+  if (mouseIsPressed && mouseX > 20 && mouseX < 310 && mouseY > 400 && mouseY < 600) {
+    fill(paintColor);
+    ellipse(mouseX - 10, mouseY - 350, 10, 10);
+  }
+  let bx = mouseX - 10;
+  let by = mouseY - 350;
+  if (mouseIsPressed && bx > 330 && bx < 365) {
+    let idx = Math.floor((by - 40) / 45);
+    if (idx >= 0 && idx < colors.length) paintColor = colors[idx];
+  }
+}
+
+function drawCatch() {
+  basketX = constrain(mouseX - 10, 40, 340);
+  itemY += 4;
+  if (itemY > 260) {
+    if (itemX > basketX - 30 && itemX < basketX + 30) score++;
+    resetCatchItem();
+  }
+  fill(255, 150, 0); ellipse(itemX, itemY, 15, 15);
+  fill(100, 50, 0); rect(basketX - 25, 250, 50, 15, 3);
+}
+
+function resetCatchGame() { score = 0; resetCatchItem(); }
+function resetCatchItem() { itemX = random(40, 340); itemY = 40; }
+</script>
+
+</body>
+</html>
